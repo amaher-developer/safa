@@ -1,0 +1,109 @@
+version: "3"
+
+networks:
+  safa:
+
+services:
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx
+    ports:
+      - "8088:80"
+    volumes:
+      - .:/var/www/html
+      - ./.docker/nginx/conf.d:/etc/nginx/conf.d
+    environment:
+      USER_UID: '1000'
+    depends_on:
+      - php
+      - mysql
+      - mysql_safa
+    networks:
+      - safa
+
+  mysql:
+    image: mysql:5.7.22
+    container_name: mysql
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3406:3306"
+    volumes:
+      - ./.docker/mysql:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: homestead
+      MYSQL_USER: homestead
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: P@$$W0rd
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    networks:
+      - safa
+
+  mysql_safa:
+    image: mysql:5.7.22
+    container_name: mysql_safa
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3506:3306"
+    volumes:
+      - ./.docker/mysql:/var/lib/mysql_safa
+    environment:
+      MYSQL_DATABASE: safa
+      MYSQL_USER: homestead
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: P@$$W0rd
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql_safa
+    networks:
+      - safa
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: php
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "9009:9000"
+    networks:
+      - safa
+
+  phpmyadmin:
+    depends_on:
+      - mysql
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    links:
+      - mysql
+    ports:
+      - '8089:80'
+    environment:
+      MYSQL_USER: root
+      MYSQL_ROOT_PASSWORD: P@$$W0rd
+      MYSQL_PASSWORD: P@$$W0rd
+      PMA_HOST: mysql
+      # PMA_ARBITRARY: 1
+    networks:
+      - safa
+
+  phpmyadmin_safa:
+    depends_on:
+      - mysql_safa
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    links:
+      - mysql_safa
+    ports:
+      - '8090:80'
+    environment:
+      MYSQL_USER: root
+      MYSQL_ROOT_PASSWORD: P@$$W0rd
+      MYSQL_PASSWORD: P@$$W0rd
+      PMA_HOST: mysql_safa
+      # PMA_ARBITRARY: 1
+    networks:
+      - safa
